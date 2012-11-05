@@ -28,7 +28,7 @@ namespace MindMapConverter
                         var body = wordDoc.MainDocumentPart.Document.AppendChild(new Body());
                         foreach (var actor in actors)
                         {
-                            AddText(body, actor.Name, "Heading1");
+                            AddText(body, actor.Name, 0);
                             var sectionNumber = 0;
                             foreach (var story in actor.Stories)
                             {
@@ -52,21 +52,18 @@ namespace MindMapConverter
             var sectionList = level.Take(level.Count - 1).ToList();
             sectionList.Add(sectionNumber);
             var sectionDisplay = String.Join(".", sectionList);
-            AddText(body, sectionDisplay, "Normal");
+            AddText(body, sectionDisplay + " - " + story.Title, level.Count);
             AddTextWithHeading(body, "Story", story.GetNarrative(actor));
             AddTextWithHeading(body, "Requirements Met", String.Join(", ", story.RelatedRequirements));
-            //AddText(body, "Story: " + story.GetNarrative(actor), "Normal");
-            //AddText(body, "Requirements Met: " + String.Join(", ", story.RelatedRequirements), "Normal");
             if (story.Children.Any())
             {
-                AddText(body, "Related Stories: ", "Normal");
                 var sectionCount = 0;
                 sectionList.Add(sectionCount);
                 foreach (var s in story.Children)
                 {
                     AppendStory(body, actor, s, sectionList);
                     sectionCount++;
-                    sectionList.RemoveAt(sectionList.Count - 1);
+                    sectionList.RemoveAt(sectionList.Count-1);
                     sectionList.Add(sectionCount);
                 }
             }
@@ -74,31 +71,31 @@ namespace MindMapConverter
 
         private static string GetStyleId(int level)
         {
-            switch (level)
-            {
-                case 0:
-                    return "Heading2";
-                case 1:
-                    return "Heading3";
-                case 2:
-                    return "Heading4";
-                default:
-                    return "Heading5";
-            }
+            if (level > 8)
+                return "Normal";
+            return "Heading" + (level + 1);
         }
 
-        private static void AddText(Body body, string text, string styleId)
+        private static void AddText(Body body, string text, int level)
         {
             var paragraph = body.AppendChild(new Paragraph());
             paragraph.ParagraphProperties = new ParagraphProperties()
-                                                {ParagraphStyleId = new ParagraphStyleId() {Val = styleId}};
+                                                {
+                                                    OutlineLevel = new OutlineLevel { Val = level },
+                                                    ParagraphStyleId = new ParagraphStyleId() { Val = GetStyleId(level) }
+                                                };
             var run = paragraph.AppendChild(new Run());
+            if (level > 1)
+            {
+                run.AppendChild(new TabChar());
+            }
             run.AppendChild(new Text(text));
         }
 
         private static void AddTextWithHeading(Body body, string heading, string text)
         {
             var paragraph = body.AppendChild(new Paragraph());
+            paragraph.ParagraphProperties = new ParagraphProperties{Indentation = new Indentation(){Start = "720"}};
             var run = paragraph.AppendChild(new Run());
             run.RunProperties = new RunProperties(){Bold = new Bold()};
             run.AppendChild(new Text(heading));
