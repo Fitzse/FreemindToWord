@@ -29,9 +29,11 @@ namespace MindMapConverter
                         foreach (var actor in actors)
                         {
                             AddText(body, actor.Name, "Heading1");
+                            var sectionNumber = 0;
                             foreach (var story in actor.Stories)
                             {
-                                AppendStory(body, actor, story, 0);
+                                AppendStory(body, actor, story, new List<int>{sectionNumber});
+                                sectionNumber++;
                             }
                         }
                         wordDoc.Close();
@@ -44,12 +46,29 @@ namespace MindMapConverter
             }
         }
 
-        private static void AppendStory(Body body, Actor actor, Story story, int level)
+        private static void AppendStory(Body body, Actor actor, Story story, List<int> level)
         {
-            AddText(body, story.GetNarrative(actor), GetStyleId(level));
-            foreach (var s in story.Children)
+            var sectionNumber = level.Last() + 1;
+            var sectionList = level.Take(level.Count - 1).ToList();
+            sectionList.Add(sectionNumber);
+            var sectionDisplay = String.Join(".", sectionList);
+            AddText(body, sectionDisplay, "Normal");
+            AddTextWithHeading(body, "Story", story.GetNarrative(actor));
+            AddTextWithHeading(body, "Requirements Met", String.Join(", ", story.RelatedRequirements));
+            //AddText(body, "Story: " + story.GetNarrative(actor), "Normal");
+            //AddText(body, "Requirements Met: " + String.Join(", ", story.RelatedRequirements), "Normal");
+            if (story.Children.Any())
             {
-                AppendStory(body, actor, s, ++level);
+                AddText(body, "Related Stories: ", "Normal");
+                var sectionCount = 0;
+                sectionList.Add(sectionCount);
+                foreach (var s in story.Children)
+                {
+                    AppendStory(body, actor, s, sectionList);
+                    sectionCount++;
+                    sectionList.RemoveAt(sectionList.Count - 1);
+                    sectionList.Add(sectionCount);
+                }
             }
         }
 
@@ -75,6 +94,16 @@ namespace MindMapConverter
                                                 {ParagraphStyleId = new ParagraphStyleId() {Val = styleId}};
             var run = paragraph.AppendChild(new Run());
             run.AppendChild(new Text(text));
+        }
+
+        private static void AddTextWithHeading(Body body, string heading, string text)
+        {
+            var paragraph = body.AppendChild(new Paragraph());
+            var run = paragraph.AppendChild(new Run());
+            run.RunProperties = new RunProperties(){Bold = new Bold()};
+            run.AppendChild(new Text(heading));
+            run = paragraph.AppendChild(new Run());
+            run.AppendChild(new Text(": " + text));
         }
 
         private static WordprocessingDocument CreateNewDocument(string filePath)
