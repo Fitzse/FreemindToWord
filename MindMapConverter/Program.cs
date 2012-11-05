@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using System.Xml.Linq;
@@ -21,22 +22,18 @@ namespace MindMapConverter
                 {
                     var xDoc = XDocument.Load(mapFile);
                     var root = xDoc.Root;
-                    var actors = root.Elements("node").Select(CreateActor);
-                    using(var wordDoc = WordprocessingDocument.Create("UserStories.docx", WordprocessingDocumentType.Document))
+                    var actors = root.Element("node").Elements("node").Select(CreateActor);
+                    using(var wordDoc = CreateNewDocument(outputFile))
                     {
-                        var styles = ExtractStylesPart("Template.dotx");
-                        var theme = ExtractThemesPart("Template.dotx");
-                        var mainPart = wordDoc.AddMainDocumentPart();
-                        mainPart.AddNewPart<StyleDefinitionsPart>();
-                        mainPart.AddNewPart<ThemePart>();
-                        mainPart.Document = new Document();
-                        styles.Save(new StreamWriter(mainPart.StyleDefinitionsPart.GetStream(FileMode.Create, FileAccess.Write)));
-                        theme.Save(new StreamWriter(mainPart.ThemePart.GetStream(FileMode.Create, FileAccess.Write)));
-                        var body = mainPart.Document.AppendChild(new Body());
-                        var paragraph = body.AppendChild(new Paragraph());
-                        paragraph.ParagraphProperties = new ParagraphProperties(){ParagraphStyleId =  new ParagraphStyleId(){Val = "Heading4"}};
-                        var run = paragraph.AppendChild(new Run());
-                        run.AppendChild(new Text("Test STUFF"));
+                        var body = wordDoc.MainDocumentPart.Document.AppendChild(new Body());
+                        foreach (var actor in actors)
+                        {
+                            AddText(body, actor.Name, "Heading1");
+                            foreach (var story in actor.Stories)
+                            {
+                                AppendStory(body, actor, story, 0);
+                            }
+                        }
                         wordDoc.Close();
                     }
                 }
@@ -46,76 +43,104 @@ namespace MindMapConverter
                 Console.WriteLine("Expects a single argument of the freemind map file path");
             }
         }
-        // Extract the styles or stylesWithEffects part from a 
-        // word processing document as an XDocument instance.
-        public static XDocument ExtractStylesPart(
-          string fileName)
+
+        private static void AppendStory(Body body, Actor actor, Story story, int level)
         {
-            // Declare a variable to hold the XDocument.
+            AddText(body, story.GetNarrative(actor), GetStyleId(level));
+            foreach (var s in story.Children)
+            {
+                AppendStory(body, actor, s, ++level);
+            }
+        }
+
+        private static string GetStyleId(int level)
+        {
+            switch (level)
+            {
+                case 0:
+                    return "Heading2";
+                case 1:
+                    return "Heading3";
+                case 2:
+                    return "Heading4";
+                default:
+                    return "Heading5";
+            }
+        }
+
+        private static void AddText(Body body, string text, string styleId)
+        {
+            var paragraph = body.AppendChild(new Paragraph());
+            paragraph.ParagraphProperties = new ParagraphProperties()
+                                                {ParagraphStyleId = new ParagraphStyleId() {Val = styleId}};
+            var run = paragraph.AppendChild(new Run());
+            run.AppendChild(new Text(text));
+        }
+
+        private static WordprocessingDocument CreateNewDocument(string filePath)
+        {
+            var doc = WordprocessingDocument.Create(filePath, WordprocessingDocumentType.Document); 
+            var mainPart = doc.AddMainDocumentPart();
+            mainPart.Document = new Document();
+            ApplyStylesFromTemplate(doc, "Template.dotx");
+            ApplyThemeFromTemplate(doc, "Templat.dotx");
+            return doc;
+        }
+
+        private static void ApplyStylesFromTemplate(WordprocessingDocument doc, string templatePath)
+        {
+            doc.MainDocumentPart.AddNewPart<StyleDefinitionsPart>();
+            var styleDefinition = doc.MainDocumentPart.StyleDefinitionsPart;
+            var styles = ExtractStyleDefinition("Template.dotx");
+            styles.Save(new StreamWriter(styleDefinition.GetStream(FileMode.Create, FileAccess.Write)));
+        }
+
+        private static void ApplyThemeFromTemplate(WordprocessingDocument doc, string templatePath)
+        {
+            doc.MainDocumentPart.AddNewPart<ThemePart>();
+            var themePart = doc.MainDocumentPart.ThemePart;
+            var theme = ExtractTheme("Template.dotx");
+            theme.Save(new StreamWriter(themePart.GetStream(FileMode.Create, FileAccess.Write)));
+        }
+
+        public static XDocument ExtractStyleDefinition(string fileName)
+        {
             XDocument styles = null;
 
-            // Open the document for read access and get a reference.
-            using (var document =
-                WordprocessingDocument.Open(fileName, false))
+            using (var document = WordprocessingDocument.Open(fileName, false))
             {
-                // Get a reference to the main document part.
                 var docPart = document.MainDocumentPart;
-
                 var stylesPart = docPart.StyleDefinitionsPart;
 
-                // If the part exists, read it into the XDocument.
                 if (stylesPart != null)
                 {
-                    using (var reader = XmlNodeReader.Create(
-                      stylesPart.GetStream(FileMode.Open, FileAccess.Read)))
+                    using (var reader = XmlNodeReader.Create(stylesPart.GetStream(FileMode.Open, FileAccess.Read)))
                     {
-                        // Create the XDocument.
                         styles = XDocument.Load(reader);
                     }
                 }
             }
-            // Return the XDocument instance.
             return styles;
         }
 
-        public static XDocument ExtractThemesPart(
-          string fileName)
+        public static XDocument ExtractTheme(string fileName)
         {
-            // Declare a variable to hold the XDocument.
-            XDocument styles = null;
+            XDocument theme = null;
 
-            // Open the document for read access and get a reference.
             using (var document =WordprocessingDocument.Open(fileName, false))
             {
-                // Get a reference to the main document part.
                 var docPart = document.MainDocumentPart;
-
                 var themePart = docPart.ThemePart;
 
-                // If the part exists, read it into the XDocument.
                 if (themePart != null)
                 {
-                    using (var reader = XmlNodeReader.Create(
-                      themePart.GetStream(FileMode.Open, FileAccess.Read)))
+                    using (var reader = XmlNodeReader.Create(themePart.GetStream(FileMode.Open, FileAccess.Read)))
                     {
-                        // Create the XDocument.
-                        styles = XDocument.Load(reader);
+                        theme = XDocument.Load(reader);
                     }
                 }
             }
-            // Return the XDocument instance.
-            return styles;
-        }
-
-        // Return styleid that matches the styleName, or null when there's no match.
-        public static string GetStyleIdFromStyleName(WordprocessingDocument doc, string styleName)
-        {
-            StyleDefinitionsPart stylePart = doc.MainDocumentPart.StyleDefinitionsPart;
-            string styleId = stylePart.Styles.Descendants<StyleName>()
-                .Where(s => s.Val.Value.Equals(styleName) && 
-                    (((Style)s.Parent).Type == StyleValues.Paragraph))
-                .Select(n => ((Style)n.Parent).StyleId).FirstOrDefault();
-            return styleId;
+            return theme;
         }
 
         static Story CreateStory(XElement element)
@@ -126,8 +151,10 @@ namespace MindMapConverter
             {
                 text = textAttribute.Value;
             }
-            var story = new Story(text);
-            story.Children = element.Elements("node").Select(CreateStory);
+            var story = new Story(text)
+                            {
+                                Children = element.Elements("node").Select(CreateStory)
+                            };
             return story;
         }
 
@@ -139,8 +166,10 @@ namespace MindMapConverter
             {
                 name = nameAttribute.Value;
             }
-            var actor = new Actor(name);
-            actor.Stories = element.Elements("node").Select(CreateStory);
+            var actor = new Actor(name)
+                            {
+                                Stories = element.Elements("node").Select(CreateStory)
+                            };
             return actor;
         }
     }
