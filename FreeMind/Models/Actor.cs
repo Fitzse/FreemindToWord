@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace MindMapConverter
+namespace FreeMind.Models
 {
     public class Actor
     {

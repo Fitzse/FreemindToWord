@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MindMapConverter
+namespace FreeMind.Models
 {
     public class Story
     {
