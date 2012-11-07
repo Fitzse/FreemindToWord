@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using System.Linq;
@@ -18,32 +19,53 @@ namespace MindMapConverter
             if (args.Length == 1)
             {
                 var mapPath = args[0];
-                var outputFile = mapPath + ".docx";
-                using (var mapFile = File.OpenRead(mapPath))
+                var docPath = mapPath + ".docx";
+                var csvPath = mapPath + ".csv";
+                var actors = FreeMind.Converter.GetActorsFromFile(mapPath).ToList();
+                using(var wordDoc = CreateNewDocument(docPath))
                 {
-                    var xDoc = XDocument.Load(mapFile);
-                    var root = xDoc.Root;
-                    var actors = root.Element("node").Elements("node").Select(CreateActor);
-                    using(var wordDoc = CreateNewDocument(outputFile))
+                    var body = wordDoc.MainDocumentPart.Document.AppendChild(new Body());
+                    foreach (var actor in actors)
                     {
-                        var body = wordDoc.MainDocumentPart.Document.AppendChild(new Body());
-                        foreach (var actor in actors)
+                        AddText(body, actor.Name, 0);
+                        var sectionNumber = 0;
+                        foreach (var story in actor.Stories)
                         {
-                            AddText(body, actor.Name, 0);
-                            var sectionNumber = 0;
-                            foreach (var story in actor.Stories)
-                            {
-                                AppendStory(body, actor, story, new List<int>{sectionNumber});
-                                sectionNumber++;
-                            }
+                            AppendStory(body, actor, story, new List<int>{sectionNumber});
+                            sectionNumber++;
                         }
-                        wordDoc.Close();
+                    }
+                    wordDoc.Close();
+                }
+                using(var csvFile = File.Create(csvPath))
+                {
+                    var line = String.Format("Title,Story,Requirments Met\n");
+                    var bytes = Encoding.UTF8.GetBytes(line);
+                    csvFile.Write(bytes, 0, bytes.Length);
+                    foreach (var actor in actors)
+                    {
+                        foreach (var s in actor.Stories)
+                        {
+                            AddStoryToFile(csvFile, s, actor);
+                        }
                     }
                 }
             }
             else
             {
                 Console.WriteLine("Expects a single argument of the freemind map file path");
+            }
+        }
+
+        private static void AddStoryToFile(FileStream file, Story story, Actor actor)
+        {
+            var line = String.Format("\"{0}\",\"{1}\",\"{2}\"\n", story.Title, story.GetNarrative(actor),
+                                     String.Join(",", story.RelatedRequirements));
+            var bytes = Encoding.UTF8.GetBytes(line);
+            file.Write(bytes, 0, bytes.Length);
+            foreach (var s in story.Children)
+            {
+                AddStoryToFile(file, s, actor);
             }
         }
 
@@ -154,7 +176,7 @@ namespace MindMapConverter
         {
             XDocument theme = null;
 
-            using (var document =WordprocessingDocument.Open(fileName, false))
+            using (var document = WordprocessingDocument.Open(fileName, false))
             {
                 var docPart = document.MainDocumentPart;
                 var themePart = docPart.ThemePart;
@@ -168,36 +190,6 @@ namespace MindMapConverter
                 }
             }
             return theme;
-        }
-
-        static Story CreateStory(XElement element)
-        {
-            var text = "";
-            var textAttribute = element.Attribute("TEXT");
-            if(textAttribute != null)
-            {
-                text = textAttribute.Value;
-            }
-            var story = new Story(text)
-                            {
-                                Children = element.Elements("node").Select(CreateStory)
-                            };
-            return story;
-        }
-
-        static Actor CreateActor(XElement element)
-        {
-            var name = "";
-            var nameAttribute = element.Attribute("TEXT");
-            if(nameAttribute != null)
-            {
-                name = nameAttribute.Value;
-            }
-            var actor = new Actor(name)
-                            {
-                                Stories = element.Elements("node").Select(CreateStory)
-                            };
-            return actor;
         }
     }
 }

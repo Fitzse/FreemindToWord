@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MindMapConverter", "MindMapConverter\MindMapConverter.csproj", "{9915FF9D-3D36-4F86-A79B-772EB7863B24}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FreeMind", "FreeMind\FreeMind.csproj", "{D8590726-B49B-40F6-9911-09E57C6A8E67}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,6 +15,10 @@ Global
 		{9915FF9D-3D36-4F86-A79B-772EB7863B24}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9915FF9D-3D36-4F86-A79B-772EB7863B24}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9915FF9D-3D36-4F86-A79B-772EB7863B24}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8590726-B49B-40F6-9911-09E57C6A8E67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8590726-B49B-40F6-9911-09E57C6A8E67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8590726-B49B-40F6-9911-09E57C6A8E67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8590726-B49B-40F6-9911-09E57C6A8E67}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

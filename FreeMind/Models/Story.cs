@@ -20,7 +20,7 @@ namespace FreeMind.Models
             Text = ParseStory(text);
         }
 
-        private IEnumerable<String> ParseRequirements(string text)
+        private IEnumerable<string> ParseRequirements(string text)
         {
             var bracketIndex = text.IndexOf("[", System.StringComparison.Ordinal);
             if(bracketIndex > 0)
