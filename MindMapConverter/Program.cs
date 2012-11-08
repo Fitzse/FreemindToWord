@@ -28,6 +28,7 @@ namespace MindMapConverter
                     foreach (var actor in actors)
                     {
                         AddText(body, actor.Name, 0);
+                        AddTextWithHeading(body, "Description", actor.Description, false);
                         var sectionNumber = 0;
                         foreach (var story in actor.Stories)
                         {
@@ -96,7 +97,7 @@ namespace MindMapConverter
         {
             if (level > 8)
                 return "Normal";
-            return "Heading" + (level + 1);
+            return "Heading" + (level + 2);
         }
 
         private static void AddText(Body body, string text, int level)
@@ -115,10 +116,14 @@ namespace MindMapConverter
             run.AppendChild(new Text(text));
         }
 
-        private static void AddTextWithHeading(Body body, string heading, string text)
+        private static void AddTextWithHeading(Body body, string heading, string text, bool indent=true)
         {
             var paragraph = body.AppendChild(new Paragraph());
-            paragraph.ParagraphProperties = new ParagraphProperties{Indentation = new Indentation(){Start = "720"}};
+            if (indent)
+            {
+                paragraph.ParagraphProperties = new ParagraphProperties
+                                                    {Indentation = new Indentation() {Start = "720"}};
+            }
             var run = paragraph.AppendChild(new Run());
             run.RunProperties = new RunProperties(){Bold = new Bold()};
             run.AppendChild(new Text(heading));
