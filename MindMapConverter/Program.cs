@@ -136,12 +136,12 @@ namespace MindMapConverter
             var doc = WordprocessingDocument.Create(filePath, WordprocessingDocumentType.Document); 
             var mainPart = doc.AddMainDocumentPart();
             mainPart.Document = new Document();
-            ApplyStylesFromTemplate(doc, "Template.dotx");
-            ApplyThemeFromTemplate(doc, "Templat.dotx");
+            ApplyStylesFromTemplate(doc);
+            ApplyThemeFromTemplate(doc);
             return doc;
         }
 
-        private static void ApplyStylesFromTemplate(WordprocessingDocument doc, string templatePath)
+        private static void ApplyStylesFromTemplate(WordprocessingDocument doc)
         {
             doc.MainDocumentPart.AddNewPart<StyleDefinitionsPart>();
             var styleDefinition = doc.MainDocumentPart.StyleDefinitionsPart;
@@ -149,7 +149,7 @@ namespace MindMapConverter
             styles.Save(new StreamWriter(styleDefinition.GetStream(FileMode.Create, FileAccess.Write)));
         }
 
-        private static void ApplyThemeFromTemplate(WordprocessingDocument doc, string templatePath)
+        private static void ApplyThemeFromTemplate(WordprocessingDocument doc)
         {
             doc.MainDocumentPart.AddNewPart<ThemePart>();
             var themePart = doc.MainDocumentPart.ThemePart;
